@@ -1,0 +1,6 @@
+{
+  "name": "Taskito",
+  "description": "Gerenciador de rotinas diárias com lembretes inteligentes, notificações persistentes e histórico de conclusão.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}

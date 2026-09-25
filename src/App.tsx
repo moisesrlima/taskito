@@ -18,14 +18,14 @@ import {
 import { sounds } from './utils/audio';
 import { sendBrowserNotification } from './utils/notifications';
 import { Header } from './components/Header';
-import { PontoQuickWidget } from './components/PontoQuickWidget';
 import { TodayTasks } from './components/TodayTasks';
 import { ManageTasks } from './components/ManageTasks';
 import { HistoryDashboard } from './components/HistoryDashboard';
 import { PersistentAlertModal } from './components/PersistentAlertModal';
 import { TaskModal } from './components/TaskModal';
 import { LinkViewerModal } from './components/LinkViewerModal';
-import { ShieldCheck, Sparkles, Plus, Clock } from 'lucide-react';
+import { applyThemeVariables, getThemeById, XP_PER_TASK } from './utils/themeColors';
+import { ExternalLink } from 'lucide-react';
 
 export default function App() {
   const [tasks, setTasks] = useState<TaskItem[]>(() => loadTasks());
@@ -77,9 +77,26 @@ export default function App() {
     if (activeAlert) {
       document.title = `⏰ (1) Taskito: ${activeAlert.title}!`;
     } else {
-      document.title = 'Taskito - Lembretes e Rotinas Diárias';
+      document.title = 'Taskito - Rotinas e Lembretes Diários';
     }
   }, [activeAlert]);
+
+  // Sync Dark Mode class with documentElement and body
+  useEffect(() => {
+    if (settings.theme === 'dark') {
+      document.documentElement.classList.add('dark');
+      document.body.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      document.body.classList.remove('dark');
+    }
+  }, [settings.theme]);
+
+  // Sync Color Theme CSS variables
+  useEffect(() => {
+    const currentTheme = getThemeById(settings.selectedColorThemeId);
+    applyThemeVariables(currentTheme);
+  }, [settings.selectedColorThemeId]);
 
   // Background reminder scheduler loop
   useEffect(() => {
@@ -130,7 +147,7 @@ export default function App() {
 
             // Send native browser push notification
             sendBrowserNotification(`⏰ Taskito: Hora de ${task.title}!`, {
-              body: task.description || `Lembrete agendado para ${currentTimeSlot}. Clique para abrir o Taskito.`,
+              body: task.description || `Lembrete agendado para ${currentTimeSlot}.`,
               requireInteraction: task.persistentAlert,
               onClick: () => {
                 window.focus();
@@ -160,7 +177,6 @@ export default function App() {
     (t) => t.enabled && t.daysOfWeek.includes(currentDayOfWeek)
   );
 
-  // Total expected slots today
   const totalSlotsToday = todayActiveTasks.reduce(
     (acc, t) => acc + t.times.length,
     0
@@ -178,11 +194,21 @@ export default function App() {
           (l) => !(l.taskId === task.id && l.scheduledTime === timeSlot && l.date === todayStr)
         )
       );
+      setSettings((prev) => ({
+        ...prev,
+        xp: Math.max(0, (prev.xp || 0) - XP_PER_TASK),
+      }));
     } else {
       // Mark as completed
       if (settings.soundEnabled) {
         sounds.playSuccessChime();
       }
+
+      setSettings((prev) => ({
+        ...prev,
+        xp: (prev.xp || 0) + XP_PER_TASK,
+        mascotMood: 'excited',
+      }));
 
       const newLog: TaskLog = {
         id: `log-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
@@ -236,6 +262,12 @@ export default function App() {
     if (settings.soundEnabled) {
       sounds.playSuccessChime();
     }
+
+    setSettings((prev) => ({
+      ...prev,
+      xp: (prev.xp || 0) + XP_PER_TASK,
+      mascotMood: 'excited',
+    }));
 
     const newLog: TaskLog = {
       id: `log-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
@@ -321,16 +353,8 @@ export default function App() {
     });
   };
 
-  // Find ponto task if user configured one
-  const pontoTask = tasks.find(
-    (t) =>
-      t.category?.toLowerCase() === 'ponto' ||
-      t.title.toLowerCase().includes('ponto') ||
-      t.id === 'bater-ponto-4x'
-  );
-
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100 flex flex-col font-sans selection:bg-amber-500/30 selection:text-amber-200">
+    <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans selection:bg-violet-100 selection:text-violet-900 transition-colors duration-200">
       
       {/* Header Bar */}
       <Header
@@ -350,68 +374,32 @@ export default function App() {
       />
 
       {/* Main Container */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 space-y-6">
+      <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
         
-        {/* Agnostic Status Bar */}
-        <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
-              <ShieldCheck className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-xs font-bold text-neutral-100">
-                Taskito • Lembretes Manuais com Notificações Persistentes
-              </h2>
-              <p className="text-xs text-neutral-400">
-                Cadastre suas tarefas diárias com link direto e escolha abertura em aba ou em modal
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 text-xs">
-            <span className="text-neutral-400">Armazenamento:</span>
-            <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-mono text-[11px] font-semibold">
-              localStorage Local
-            </span>
-          </div>
-        </div>
-
         {/* Tab Content */}
         {activeTab === 'today' && (
-          <div className="space-y-6">
-            {/* Quick Ponto Tracker Widget if user created a ponto task */}
-            {pontoTask && (
-              <PontoQuickWidget
-                pontoTask={pontoTask}
-                todayLogs={todayLogs}
-                onToggleTimeSlot={handleToggleComplete}
-                onEditTask={(t) => {
-                  setEditingTask(t);
-                  setIsTaskModalOpen(true);
-                }}
-              />
-            )}
-
-            {/* Today's Tasks Timeline */}
-            <TodayTasks
-              tasks={tasks}
-              todayLogs={todayLogs}
-              currentDayOfWeek={currentDayOfWeek}
-              onToggleComplete={handleToggleComplete}
-              onTriggerManualAlert={handleTriggerManualAlert}
-              onEditTask={(t) => {
-                setEditingTask(t);
-                setIsTaskModalOpen(true);
-              }}
-              onDeleteTask={handleDeleteTask}
-              onAddNewTask={() => {
-                setEditingTask(null);
-                setIsTaskModalOpen(true);
-              }}
-              onSaveNote={handleSaveNote}
-              onOpenLinkModal={handleOpenLinkModal}
-            />
-          </div>
+          <TodayTasks
+            tasks={tasks}
+            todayLogs={todayLogs}
+            currentDayOfWeek={currentDayOfWeek}
+            userName={settings.userName || 'Seu nome aqui'}
+            settings={settings}
+            onUpdateSettings={setSettings}
+            onUpdateUserName={(name) => setSettings({ ...settings, userName: name })}
+            onToggleComplete={handleToggleComplete}
+            onTriggerManualAlert={handleTriggerManualAlert}
+            onEditTask={(t) => {
+              setEditingTask(t);
+              setIsTaskModalOpen(true);
+            }}
+            onDeleteTask={handleDeleteTask}
+            onAddNewTask={() => {
+              setEditingTask(null);
+              setIsTaskModalOpen(true);
+            }}
+            onSaveNote={handleSaveNote}
+            onOpenLinkModal={handleOpenLinkModal}
+          />
         )}
 
         {activeTab === 'manage' && (
@@ -477,11 +465,24 @@ export default function App() {
         onDelete={handleDeleteTask}
       />
 
-      {/* Footer */}
-      <footer className="border-t border-neutral-800 bg-neutral-950 py-4 text-center text-xs text-neutral-400 mt-auto">
-        <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>Taskito • Aplicativo agnóstico para lembretes e rotinas diárias manuais</span>
-          <span className="text-neutral-500">Sem banco de dados • Dados salvos no navegador</span>
+      {/* Minimal Footer */}
+      <footer className="border-t border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 py-4 text-center text-xs text-slate-400 dark:text-slate-500 mt-auto transition-colors duration-200">
+        <div className="max-w-5xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <span>TASKITO • Gerenciador de rotinas diárias e lembretes pontuais</span>
+          <div className="flex items-center gap-3">
+            <span>100% Local • Sem API e sem IA</span>
+            <span className="text-slate-300 dark:text-slate-700">•</span>
+            <a
+              href="https://appsforall.vercel.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 font-semibold hover:underline transition-colors"
+              style={{ color: 'var(--app-primary, #7014F2)' }}
+            >
+              <span>Mais Apps</span>
+              <ExternalLink className="w-3 h-3" />
+            </a>
+          </div>
         </div>
       </footer>
 

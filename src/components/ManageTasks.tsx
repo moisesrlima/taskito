@@ -2,14 +2,11 @@ import React from 'react';
 import { TaskItem, DayOfWeek } from '../types';
 import {
   Plus,
-  Edit2,
-  Trash2,
-  ExternalLink,
-  Globe,
   Clock,
   Calendar,
-  BellRing,
-  Tag,
+  Globe,
+  Edit2,
+  Trash2,
   Power,
   Layers,
 } from 'lucide-react';
@@ -23,6 +20,16 @@ interface ManageTasksProps {
   onOpenLinkModal: (url: string, title: string) => void;
 }
 
+const DAYS_MAP: Record<DayOfWeek, string> = {
+  0: 'Dom',
+  1: 'Seg',
+  2: 'Ter',
+  3: 'Qua',
+  4: 'Qui',
+  5: 'Sex',
+  6: 'Sáb',
+};
+
 export const ManageTasks: React.FC<ManageTasksProps> = ({
   tasks,
   onAddNewTask,
@@ -31,10 +38,7 @@ export const ManageTasks: React.FC<ManageTasksProps> = ({
   onToggleTaskEnabled,
   onOpenLinkModal,
 }) => {
-  const getDayName = (d: DayOfWeek) => {
-    const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-    return days[d];
-  };
+  const getDayName = (day: DayOfWeek) => DAYS_MAP[day] || `${day}`;
 
   const handleLinkClick = (task: TaskItem) => {
     if (!task.url) return;
@@ -46,42 +50,48 @@ export const ManageTasks: React.FC<ManageTasksProps> = ({
   };
 
   return (
-    <div className="space-y-6 text-neutral-100">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-neutral-900 border border-neutral-800 rounded-2xl p-5">
+    <div className="space-y-6">
+      {/* Top Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)] dark:shadow-none transition-colors">
         <div>
-          <h2 className="text-base sm:text-lg font-bold text-neutral-100 flex items-center gap-2">
-            <Layers className="w-5 h-5 text-amber-400" />
-            <span>Configurações das Tarefas Cadastradas</span>
+          <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <Layers className="w-5 h-5 text-[var(--app-primary,#7014F2)]" />
+            <span>Gerenciar Rotinas e Atividades</span>
           </h2>
-          <p className="text-xs text-neutral-400 mt-1 max-w-xl">
-            Configure suas tarefas agnósticas, defina horários diários, URLs de acesso e escolha se cada link abre em nova aba ou em modal interno.
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+            Configure títulos, horários múltiplos, dias da semana e links com abertura em aba ou modal.
           </p>
         </div>
         <button
           onClick={onAddNewTask}
-          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-neutral-950 rounded-xl text-xs font-bold transition-all shadow-md active:scale-95 shrink-0"
+          className="flex items-center justify-center gap-2 px-5 py-2.5 btn-app-primary text-white rounded-full text-xs font-semibold shadow-md transition-all shrink-0"
         >
           <Plus className="w-4 h-4 stroke-[2.5]" />
-          <span>Cadastrar Nova Tarefa</span>
+          <span>Cadastrar Nova Atividade</span>
         </button>
       </div>
 
-      {/* Task List */}
+      {/* Task Cards Grid */}
       {tasks.length === 0 ? (
-        <div className="p-10 text-center bg-neutral-900 rounded-2xl border border-dashed border-neutral-800">
-          <div className="w-12 h-12 rounded-2xl bg-neutral-800 border border-neutral-700 flex items-center justify-center text-amber-400 mx-auto mb-3">
+        <div className="p-12 text-center bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
+          <div
+            className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-3"
+            style={{
+              backgroundColor: 'var(--app-primary-10, rgba(112, 20, 242, 0.1))',
+              color: 'var(--app-primary, #7014F2)',
+            }}
+          >
             <Layers className="w-6 h-6" />
           </div>
-          <h3 className="font-bold text-neutral-200 text-sm">Nenhuma tarefa cadastrada</h3>
-          <p className="text-xs text-neutral-400 max-w-sm mx-auto mt-1 leading-relaxed">
-            Cadastre suas rotinas (como verificar portais, disparar e-mails ou bater ponto) definindo horários e o link de acesso.
+          <h3 className="font-bold text-slate-900 dark:text-white text-sm">Nenhuma atividade cadastrada</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto mt-1">
+            Cadastre suas rotinas definindo horários e o link de acesso.
           </p>
           <button
             onClick={onAddNewTask}
-            className="mt-4 px-4 py-2 bg-amber-500 hover:bg-amber-400 text-neutral-950 rounded-xl text-xs font-bold transition-all shadow-md"
+            className="mt-4 px-5 py-2.5 btn-app-primary text-white rounded-full text-xs font-semibold shadow-sm"
           >
-            + Cadastrar Tarefa Agora
+            + Cadastrar Atividade Agora
           </button>
         </div>
       ) : (
@@ -89,58 +99,66 @@ export const ManageTasks: React.FC<ManageTasksProps> = ({
           {tasks.map((task) => (
             <div
               key={task.id}
-              className={`p-5 rounded-2xl border transition-all flex flex-col justify-between ${
+              className={`p-5 rounded-2xl border bg-white dark:bg-slate-900 shadow-[0_1px_3px_rgba(0,0,0,0.03)] dark:shadow-none transition-all flex flex-col justify-between ${
                 task.enabled
-                  ? 'bg-neutral-900 border-neutral-800 hover:border-neutral-700'
-                  : 'bg-neutral-950/60 border-neutral-800/60 opacity-60'
+                  ? 'border-slate-100 dark:border-slate-800 hover:shadow-md dark:hover:border-slate-700'
+                  : 'border-slate-100 dark:border-slate-800/60 opacity-60 bg-slate-50/50 dark:bg-slate-900/40'
               }`}
             >
-              {/* Top row: Title + Enabled switch */}
+              {/* Header */}
               <div className="space-y-3">
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
+                  <div>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-bold text-sm text-neutral-100 truncate">
+                      <h3 className="font-bold text-slate-900 dark:text-white text-sm">
                         {task.title}
                       </h3>
                       {task.category && (
-                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-neutral-800 text-neutral-300 border border-neutral-700 flex items-center gap-1">
-                          <Tag className="w-2.5 h-2.5 text-neutral-400" />
+                        <span
+                          className="text-[10px] font-semibold px-2 py-0.5 rounded-full border"
+                          style={{
+                            backgroundColor: 'var(--app-primary-10, rgba(112, 20, 242, 0.1))',
+                            color: 'var(--app-primary, #7014F2)',
+                            borderColor: 'var(--app-primary-20, rgba(112, 20, 242, 0.2))',
+                          }}
+                        >
                           {task.category}
                         </span>
                       )}
                     </div>
                     {task.description && (
-                      <p className="text-xs text-neutral-400 mt-1 line-clamp-2 leading-relaxed">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
                         {task.description}
                       </p>
                     )}
                   </div>
 
-                  {/* Toggle Enabled */}
                   <button
                     onClick={() => onToggleTaskEnabled(task.id)}
-                    title={task.enabled ? 'Pausar tarefa' : 'Ativar tarefa'}
-                    className={`p-1.5 rounded-xl border transition-colors shrink-0 ${
+                    title={task.enabled ? 'Desativar rotina' : 'Ativar rotina'}
+                    className={`p-1.5 rounded-xl text-xs transition-colors ${
                       task.enabled
-                        ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
-                        : 'bg-neutral-800 border-neutral-700 text-neutral-500'
+                        ? 'text-white'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
                     }`}
+                    style={task.enabled ? { backgroundColor: 'var(--app-primary, #7014F2)' } : undefined}
                   >
                     <Power className="w-4 h-4" />
                   </button>
                 </div>
 
-                {/* Schedules info */}
-                <div className="space-y-1.5 pt-2 border-t border-neutral-800/80 text-xs">
-                  <div className="flex items-center gap-2 text-neutral-300">
-                    <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                    <span className="text-neutral-400">Horários:</span>
-                    <div className="flex flex-wrap gap-1 font-mono text-[11px] font-bold text-neutral-200">
+                {/* Days & Times */}
+                <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-slate-400 dark:text-slate-500 flex items-center gap-1 font-medium">
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>Horários:</span>
+                    </span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       {task.times.map((t) => (
                         <span
                           key={t}
-                          className="px-1.5 py-0.5 rounded bg-neutral-950 border border-neutral-700"
+                          className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono font-medium text-[11px]"
                         >
                           {t}
                         </span>
@@ -148,89 +166,65 @@ export const ManageTasks: React.FC<ManageTasksProps> = ({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 text-neutral-300">
-                    <Calendar className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
-                    <span className="text-neutral-400">Dias:</span>
-                    <span className="text-neutral-200">
-                      {task.daysOfWeek.map(getDayName).join(', ')}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-slate-400 dark:text-slate-500 flex items-center gap-1 font-medium">
+                      <Calendar className="w-3.5 h-3.5" />
+                      <span>Dias:</span>
                     </span>
+                    <div className="flex items-center gap-1 flex-wrap">
+                      {task.daysOfWeek.map((d) => (
+                        <span
+                          key={d}
+                          className="px-1.5 py-0.5 rounded font-semibold text-[10px]"
+                          style={{
+                            backgroundColor: 'var(--app-primary-10, rgba(112, 20, 242, 0.1))',
+                            color: 'var(--app-primary, #7014F2)',
+                          }}
+                        >
+                          {getDayName(d)}
+                        </span>
+                      ))}
+                    </div>
                   </div>
 
-                  {/* Link Target behavior info */}
                   {task.url && (
-                    <div className="flex items-center gap-2 pt-1 text-neutral-300">
-                      {task.linkTarget === 'modal' ? (
-                        <Globe className="w-3.5 h-3.5 text-sky-400 shrink-0" />
-                      ) : (
-                        <ExternalLink className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                      )}
-                      <span className="text-neutral-400">Comportamento do link:</span>
-                      <span className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-neutral-950 border border-neutral-700 text-neutral-200">
-                        {task.linkTarget === 'modal'
-                          ? 'Janela Modal'
-                          : 'Nova Aba'}
-                      </span>
+                    <div className="flex items-center gap-2 text-[11px] text-slate-600 dark:text-slate-400 truncate pt-1">
+                      <Globe className="w-3.5 h-3.5 text-[var(--app-primary,#7014F2)] shrink-0" />
+                      <button
+                        onClick={() => handleLinkClick(task)}
+                        className="hover:underline hover:text-[var(--app-primary,#7014F2)] truncate font-mono"
+                      >
+                        {task.url}
+                      </button>
                     </div>
                   )}
-
-                  {/* Persistence Badge */}
-                  <div className="flex items-center gap-2 pt-0.5 text-[11px]">
-                    <span className="text-neutral-400">Alertas:</span>
-                    {task.persistentAlert && (
-                      <span className="text-amber-400 font-medium">🔔 Persistente</span>
-                    )}
-                    {task.soundAlert && (
-                      <span className="text-neutral-300">🔊 Som</span>
-                    )}
-                  </div>
                 </div>
               </div>
 
-              {/* Bottom Action bar */}
-              <div className="pt-4 mt-3 border-t border-neutral-800 flex items-center justify-between">
-                {task.url ? (
-                  <button
-                    onClick={() => handleLinkClick(task)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 rounded-xl text-xs font-semibold text-neutral-200 transition-colors"
-                  >
-                    {task.linkTarget === 'modal' ? (
-                      <>
-                        <Globe className="w-3.5 h-3.5 text-amber-400" />
-                        <span>Testar Modal</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>Testar Link</span>
-                        <ExternalLink className="w-3.5 h-3.5 text-amber-400" />
-                      </>
-                    )}
-                  </button>
-                ) : (
-                  <div className="text-[11px] text-neutral-500 italic">Sem URL configurada</div>
-                )}
+              {/* Card Actions */}
+              <div className="pt-4 mt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <span className="text-[11px] text-slate-400 dark:text-slate-500">
+                  {task.soundAlert ? 'Com alarme sonoro' : 'Sem alarme sonoro'}
+                </span>
 
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1">
                   <button
                     onClick={() => onEditTask(task)}
-                    className="flex items-center gap-1 px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 rounded-xl text-xs font-semibold transition-colors"
+                    className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                    title="Editar atividade"
                   >
-                    <Edit2 className="w-3.5 h-3.5" />
-                    <span>Editar</span>
+                    <Edit2 className="w-4 h-4" />
                   </button>
-
                   <button
-                    onClick={() => {
-                      if (confirm(`Remover permanentemente a tarefa "${task.title}"?`)) {
-                        onDeleteTask(task.id);
-                      }
-                    }}
-                    className="p-1.5 text-neutral-400 hover:text-red-400 hover:bg-red-950/40 rounded-xl transition-colors"
-                    title="Excluir tarefa"
+                    onClick={() => onDeleteTask(task.id)}
+                    className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition-colors"
+                    title="Excluir atividade"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               </div>
+
             </div>
           ))}
         </div>

@@ -3,15 +3,10 @@ import { TaskItem, TaskLog } from '../types';
 import {
   CheckCircle2,
   Calendar,
-  Flame,
-  Award,
   Filter,
-  Clock,
   Download,
   Trash2,
-  MessageSquare,
   TrendingUp,
-  Tag,
 } from 'lucide-react';
 import { getTodayDateString } from '../utils/storage';
 
@@ -44,45 +39,23 @@ export const HistoryDashboard: React.FC<HistoryDashboardProps> = ({
       return dateB - dateA;
     });
 
-  // Calculate Agnostic Metrics
-  const completedLogs = logs.filter((l) => l.status === 'concluido');
-  const totalCompletedCount = completedLogs.length;
-
-  // Streak calculation (consecutive days with at least 1 completed task)
-  const uniqueDatesWithCompletion = Array.from(
-    new Set(completedLogs.map((l) => l.date))
-  ).sort().reverse();
-
-  let streak = 0;
-  let checkDate = new Date();
-  
-  for (let i = 0; i < 30; i++) {
-    const dStr = getTodayDateString(checkDate);
-    if (uniqueDatesWithCompletion.includes(dStr)) {
-      streak++;
-      checkDate.setDate(checkDate.getDate() - 1);
-    } else {
-      if (i === 0 && dStr === todayStr) {
-        checkDate.setDate(checkDate.getDate() - 1);
-        continue;
-      }
-      break;
-    }
-  }
-
-  // Find most executed task dynamically
-  const taskCounts: { [title: string]: number } = {};
-  completedLogs.forEach((l) => {
-    taskCounts[l.taskTitle] = (taskCounts[l.taskTitle] || 0) + 1;
-  });
-  let topTask = '-';
-  let topCount = 0;
-  Object.entries(taskCounts).forEach(([title, count]) => {
-    if (count > topCount) {
-      topCount = count;
-      topTask = title;
-    }
-  });
+  // Export JSON backup
+  const handleExportJSON = () => {
+    const dataToExport = {
+      exportedAt: new Date().toISOString(),
+      tasks,
+      logs,
+    };
+    const blob = new Blob([JSON.stringify(dataToExport, null, 2)], {
+      type: 'application/json',
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `taskito-backup-${todayStr}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   // Last 7 days visual chart
   const last7Days = Array.from({ length: 7 }, (_, i) => {
@@ -102,266 +75,161 @@ export const HistoryDashboard: React.FC<HistoryDashboardProps> = ({
     };
   });
 
-  const handleExportJSON = () => {
-    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(logs, null, 2));
-    const downloadAnchor = document.createElement('a');
-    downloadAnchor.setAttribute('href', dataStr);
-    downloadAnchor.setAttribute('download', `taskito-historico-${todayStr}.json`);
-    document.body.appendChild(downloadAnchor);
-    downloadAnchor.click();
-    downloadAnchor.remove();
-  };
+  const maxCountIn7Days = Math.max(...last7Days.map((d) => d.count), 1);
 
   return (
-    <div className="space-y-6 text-neutral-100">
-      {/* Top Stat Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-        {/* Total Concluídas */}
-        <div className="bg-neutral-900 rounded-2xl border border-neutral-800 p-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-neutral-400">Total Concluídas</span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center">
-              <CheckCircle2 className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-2 text-2xl font-black text-neutral-100 font-mono">
-            {totalCompletedCount}
-          </div>
-          <div className="text-[11px] text-neutral-400 mt-1 flex items-center gap-1">
-            <TrendingUp className="w-3 h-3 text-emerald-400" />
-            <span>Execuções registradas</span>
-          </div>
+    <div className="space-y-6">
+      {/* Top Banner with Export / Clear */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)] dark:shadow-none transition-colors">
+        <div>
+          <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-[var(--app-primary,#7014F2)]" />
+            <span>Histórico de Atividades e Consistência</span>
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+            Acompanhe o registro das atividades concluídas nos últimos dias.
+          </p>
         </div>
 
-        {/* Sequência Ativa */}
-        <div className="bg-neutral-900 rounded-2xl border border-neutral-800 p-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-neutral-400">Sequência Ativa</span>
-            <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center">
-              <Flame className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-2 text-2xl font-black text-neutral-100 font-mono">
-            {streak} {streak === 1 ? 'dia' : 'dias'}
-          </div>
-          <div className="text-[11px] text-neutral-400 mt-1">
-            Dias consecutivos ativos
-          </div>
-        </div>
-
-        {/* Dias com Atividade */}
-        <div className="bg-neutral-900 rounded-2xl border border-neutral-800 p-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-neutral-400">Dias com Registros</span>
-            <div className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center justify-center">
-              <Calendar className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-2 text-2xl font-black text-neutral-100 font-mono">
-            {uniqueDatesWithCompletion.length}
-          </div>
-          <div className="text-[11px] text-neutral-400 mt-1">
-            Histórico acumulado no app
-          </div>
-        </div>
-
-        {/* Tarefa Mais Concluída */}
-        <div className="bg-neutral-900 rounded-2xl border border-neutral-800 p-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-neutral-400">Rotina Mais Frequente</span>
-            <div className="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20 flex items-center justify-center">
-              <Award className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-2 text-sm font-bold text-neutral-200 truncate" title={topTask}>
-            {topTask}
-          </div>
-          <div className="text-[11px] text-neutral-400 mt-1 font-mono">
-            {topCount > 0 ? `${topCount} conclusões` : 'Nenhuma ainda'}
-          </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleExportJSON}
+            className="flex items-center gap-1.5 px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-full text-xs font-semibold transition-colors"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>Exportar Backup</span>
+          </button>
+          {logs.length > 0 && (
+            <button
+              onClick={() => {
+                if (window.confirm('Tem certeza de que deseja limpar o histórico de conclusões?')) {
+                  onClearHistory();
+                }
+              }}
+              className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-full transition-colors"
+              title="Limpar histórico"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
 
-      {/* 7-Days Activity Strip */}
-      <div className="bg-neutral-900 rounded-2xl border border-neutral-800 p-5 shadow-sm space-y-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="font-bold text-sm text-neutral-100 flex items-center gap-1.5">
-              <Calendar className="w-4 h-4 text-amber-400" />
-              <span>Visão Semanal de Atividades</span>
-            </h3>
-            <p className="text-xs text-neutral-400">
-              Número de tarefas concluídas nos últimos 7 dias
-            </p>
-          </div>
-        </div>
+      {/* 7 Days Bar Chart Card */}
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)] dark:shadow-none transition-colors">
+        <h3 className="text-sm font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+          <Calendar className="w-4 h-4 text-[var(--app-primary,#7014F2)]" />
+          <span>Atividades Concluídas nos Últimos 7 Dias</span>
+        </h3>
 
         <div className="grid grid-cols-7 gap-2 pt-2">
-          {last7Days.map((day) => (
-            <div
-              key={day.dateStr}
-              className={`p-3 rounded-xl border text-center flex flex-col justify-between transition-all ${
-                day.isToday
-                  ? 'bg-amber-500/10 border-amber-500/50 ring-1 ring-amber-500/40'
-                  : day.count > 0
-                  ? 'bg-neutral-950 border-neutral-800'
-                  : 'bg-neutral-950/40 border-neutral-800/60'
-              }`}
-            >
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-500 block">
-                  {day.dayName}
-                </span>
-                <span className="font-bold text-xs text-neutral-200">
-                  {day.dayNumber}
-                </span>
+          {last7Days.map((day) => {
+            const heightPercent = Math.min(100, Math.max(12, Math.round((day.count / maxCountIn7Days) * 100)));
+            return (
+              <div key={day.dateStr} className="flex flex-col items-center gap-2">
+                <div className="w-full h-24 bg-slate-50 dark:bg-slate-800/60 rounded-xl flex items-end justify-center p-1 relative overflow-hidden">
+                  <div
+                    className="w-full rounded-lg transition-all duration-300"
+                    style={{
+                      height: `${heightPercent}%`,
+                      backgroundColor: 'var(--app-primary, #7014F2)',
+                      opacity: day.isToday ? 1 : 0.35,
+                    }}
+                  />
+                  {day.count > 0 && (
+                    <span className="absolute top-1 text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                      {day.count}
+                    </span>
+                  )}
+                </div>
+                <div className="text-center">
+                  <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase block">
+                    {day.dayName}
+                  </span>
+                  <span
+                    className="text-[10px]"
+                    style={day.isToday ? { color: 'var(--app-primary, #7014F2)', fontWeight: 700 } : undefined}
+                  >
+                    {day.dayNumber}
+                  </span>
+                </div>
               </div>
-
-              <div className="mt-3">
-                <span
-                  className={`inline-block font-mono text-xs font-extrabold px-2 py-0.5 rounded-full ${
-                    day.count >= 4
-                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                      : day.count > 0
-                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                      : 'bg-neutral-900 text-neutral-500'
-                  }`}
-                >
-                  {day.count}
-                </span>
-                <span className="block text-[10px] text-neutral-500 mt-0.5">
-                  {day.count === 1 ? 'tarefa' : 'tarefas'}
-                </span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
-      {/* History Log Table & Feed */}
-      <div className="bg-neutral-900 rounded-2xl border border-neutral-800 p-5 shadow-sm space-y-4">
-        {/* Table Filters and Controls */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-neutral-800">
-          <div>
-            <h3 className="font-bold text-sm text-neutral-100">Histórico de Conclusão Detalhado</h3>
-            <p className="text-xs text-neutral-400">
-              Registros locais salvos no navegador com horários de marcação
-            </p>
+      {/* Log History Feed */}
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)] dark:shadow-none space-y-4 transition-colors">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-[var(--app-primary,#7014F2)]" />
+            <span className="text-sm font-bold text-slate-900 dark:text-white">
+              Registros Concluídos ({filteredLogs.length})
+            </span>
           </div>
 
-          <div className="flex items-center flex-wrap gap-2">
-            {/* Filter by task */}
-            <div className="flex items-center gap-1.5 bg-neutral-950 border border-neutral-700 px-2.5 py-1 rounded-xl text-xs">
-              <Filter className="w-3.5 h-3.5 text-neutral-400" />
-              <select
-                value={selectedTaskFilter}
-                onChange={(e) => setSelectedTaskFilter(e.target.value)}
-                className="bg-transparent border-none text-neutral-200 font-medium focus:outline-none cursor-pointer"
-              >
-                <option value="all" className="bg-neutral-900 text-neutral-200">Todas as Rotinas</option>
-                {tasks.map((t) => (
-                  <option key={t.id} value={t.id} className="bg-neutral-900 text-neutral-200">
-                    {t.title}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Export JSON button */}
-            <button
-              id="export-history-btn"
-              onClick={handleExportJSON}
-              className="flex items-center gap-1 px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-neutral-200 rounded-xl text-xs font-semibold transition-colors"
-              title="Baixar cópia de segurança em JSON"
+          {/* Filter by task */}
+          <div className="flex items-center gap-2">
+            <Filter className="w-3.5 h-3.5 text-slate-400" />
+            <select
+              value={selectedTaskFilter}
+              onChange={(e) => setSelectedTaskFilter(e.target.value)}
+              className="text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1 text-slate-700 dark:text-slate-200 outline-none"
             >
-              <Download className="w-3.5 h-3.5 text-amber-400" />
-              <span className="hidden sm:inline">Exportar JSON</span>
-            </button>
-
-            {/* Clear History */}
-            {logs.length > 0 && (
-              <button
-                id="clear-history-btn"
-                onClick={() => {
-                  if (confirm('Tem certeza que deseja apagar todo o histórico de conclusões salvas?')) {
-                    onClearHistory();
-                  }
-                }}
-                className="p-1.5 text-neutral-400 hover:text-red-400 rounded-xl hover:bg-red-950/50 transition-colors border border-transparent hover:border-red-900/50"
-                title="Limpar histórico"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            )}
+              <option value="all">Todas as tarefas</option>
+              {tasks.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.title}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
-        {/* Logs List */}
         {filteredLogs.length === 0 ? (
-          <div className="py-12 text-center text-neutral-500">
-            <Clock className="w-8 h-8 mx-auto mb-2 opacity-40" />
-            <p className="text-xs">Nenhum registro encontrado no histórico.</p>
-            <p className="text-[11px] text-neutral-600 mt-1">Conforme você executa suas tarefas diárias, os registros aparecerão aqui.</p>
+          <div className="py-8 text-center text-xs text-slate-400 dark:text-slate-500">
+            Nenhum registro encontrado para o filtro selecionado.
           </div>
         ) : (
-          <div className="divide-y divide-neutral-800/80">
-            {filteredLogs.map((log) => {
-              const formattedDate = new Date(`${log.date}T12:00:00`).toLocaleDateString('pt-BR', {
-                weekday: 'short',
-                day: '2-digit',
-                month: '2-digit',
-              });
-
-              const executionTime = log.completedAt
-                ? new Date(log.completedAt).toLocaleTimeString('pt-BR', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })
-                : null;
-
-              return (
-                <div
-                  key={log.id}
-                  className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 hover:bg-neutral-950/40 px-2 rounded-xl transition-colors"
-                >
-                  <div className="flex items-start sm:items-center gap-3">
-                    <div className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                    </div>
-
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-xs text-neutral-200">
-                          {log.taskTitle}
-                        </span>
-                        <span className="font-mono text-[11px] px-1.5 py-0.5 rounded bg-neutral-950 border border-neutral-800 text-amber-300">
-                          Horário: {log.scheduledTime}
-                        </span>
-                      </div>
-
-                      {log.note && (
-                        <div className="flex items-center gap-1 text-xs text-neutral-400 mt-0.5">
-                          <MessageSquare className="w-3 h-3 text-neutral-500" />
-                          <span className="italic">"{log.note}"</span>
-                        </div>
-                      )}
-                    </div>
+          <div className="divide-y divide-slate-100 dark:divide-slate-800">
+            {filteredLogs.map((log) => (
+              <div
+                key={log.id}
+                className="py-3 flex items-center justify-between gap-3 text-xs"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div
+                    className="w-6 h-6 rounded-full flex items-center justify-center shrink-0"
+                    style={{
+                      backgroundColor: 'var(--app-primary-10, rgba(112, 20, 242, 0.1))',
+                      color: 'var(--app-primary, #7014F2)',
+                    }}
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
                   </div>
-
-                  <div className="flex items-center gap-3 text-xs text-neutral-400 pl-9 sm:pl-0">
-                    <span className="capitalize">{formattedDate}</span>
-                    {executionTime && (
-                      <span className="font-mono text-emerald-300 bg-emerald-950/60 border border-emerald-800/60 px-2 py-0.5 rounded-md font-medium">
-                        Feito às {executionTime}
+                  <div className="min-w-0">
+                    <span className="font-semibold text-slate-800 dark:text-slate-200 block truncate">
+                      {log.taskTitle}
+                    </span>
+                    {log.note && (
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400 italic block truncate">
+                        "{log.note}"
                       </span>
                     )}
                   </div>
                 </div>
-              );
-            })}
+
+                <div className="flex items-center gap-3 text-slate-400 dark:text-slate-500 shrink-0">
+                  <span className="font-mono">{log.scheduledTime}</span>
+                  <span className="text-[11px]">{log.date}</span>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
+
     </div>
   );
 };

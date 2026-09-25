@@ -1,74 +1,85 @@
-import React, { useState } from 'react';
-import { TaskItem, LinkOpenTarget, DayOfWeek } from '../types';
-import { X, Clock, Plus, Trash2, Calendar, Link, Globe, Layers } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { TaskItem, DayOfWeek, LinkOpenTarget } from '../types';
+import {
+  X,
+  Plus,
+  Trash2,
+  Clock,
+  Link,
+  Globe,
+} from 'lucide-react';
 
 interface TaskModalProps {
-  task: TaskItem | null; // null if creating
   isOpen: boolean;
   onClose: () => void;
   onSave: (task: TaskItem) => void;
+  task?: TaskItem | null;
   onDelete?: (taskId: string) => void;
 }
 
+const DAYS_OF_WEEK: { label: string; value: DayOfWeek }[] = [
+  { label: 'Dom', value: 0 },
+  { label: 'Seg', value: 1 },
+  { label: 'Ter', value: 2 },
+  { label: 'Qua', value: 3 },
+  { label: 'Qui', value: 4 },
+  { label: 'Sex', value: 5 },
+  { label: 'Sáb', value: 6 },
+];
+
 export const TaskModal: React.FC<TaskModalProps> = ({
-  task,
   isOpen,
   onClose,
   onSave,
+  task,
   onDelete,
 }) => {
   const isEditing = Boolean(task);
 
-  const [title, setTitle] = useState(task?.title || '');
-  const [description, setDescription] = useState(task?.description || '');
-  const [category, setCategory] = useState(task?.category || 'Geral');
-  const [url, setUrl] = useState(task?.url || '');
-  const [linkTarget, setLinkTarget] = useState<LinkOpenTarget>(
-    task?.linkTarget || 'new_tab'
-  );
-  const [daysOfWeek, setDaysOfWeek] = useState<DayOfWeek[]>(
-    task?.daysOfWeek || [1, 2, 3, 4, 5]
-  );
-  const [times, setTimes] = useState<string[]>(
-    task?.times && task.times.length > 0 ? task.times : ['09:00']
-  );
-  const [newTimeInput, setNewTimeInput] = useState('10:00');
-  const [soundAlert, setSoundAlert] = useState(task ? task.soundAlert : true);
-  const [persistentAlert, setPersistentAlert] = useState(task ? task.persistentAlert : true);
-  const [enabled] = useState(task ? task.enabled : true);
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [category, setCategory] = useState('');
+  const [url, setUrl] = useState('');
+  const [linkTarget, setLinkTarget] = useState<LinkOpenTarget>('new_tab');
+  const [selectedDays, setSelectedDays] = useState<DayOfWeek[]>([1, 2, 3, 4, 5]);
+  const [times, setTimes] = useState<string[]>(['09:00']);
+  const [newTimeInput, setNewTimeInput] = useState('14:00');
+  const [soundAlert, setSoundAlert] = useState(true);
+  const [persistentAlert, setPersistentAlert] = useState(true);
+
+  useEffect(() => {
+    if (task) {
+      setTitle(task.title);
+      setDescription(task.description || '');
+      setCategory(task.category || '');
+      setUrl(task.url || '');
+      setLinkTarget(task.linkTarget || 'new_tab');
+      setSelectedDays(task.daysOfWeek || [1, 2, 3, 4, 5]);
+      setTimes(task.times && task.times.length > 0 ? task.times : ['09:00']);
+      setSoundAlert(task.soundAlert ?? true);
+      setPersistentAlert(task.persistentAlert ?? true);
+    } else {
+      setTitle('');
+      setDescription('');
+      setCategory('');
+      setUrl('');
+      setLinkTarget('new_tab');
+      setSelectedDays([1, 2, 3, 4, 5]);
+      setTimes(['09:00']);
+      setSoundAlert(true);
+      setPersistentAlert(true);
+    }
+  }, [task, isOpen]);
 
   if (!isOpen) return null;
 
-  const daysList: { label: string; value: DayOfWeek; name: string }[] = [
-    { label: 'D', value: 0, name: 'Domingo' },
-    { label: 'S', value: 1, name: 'Segunda' },
-    { label: 'T', value: 2, name: 'Terça' },
-    { label: 'Q', value: 3, name: 'Quarta' },
-    { label: 'Q', value: 4, name: 'Quinta' },
-    { label: 'S', value: 5, name: 'Sexta' },
-    { label: 'S', value: 6, name: 'Sábado' },
-  ];
-
   const toggleDay = (day: DayOfWeek) => {
-    if (daysOfWeek.includes(day)) {
-      if (daysOfWeek.length > 1) {
-        setDaysOfWeek(daysOfWeek.filter((d) => d !== day));
-      }
+    if (selectedDays.includes(day)) {
+      if (selectedDays.length === 1) return; // Must have at least 1 day
+      setSelectedDays(selectedDays.filter((d) => d !== day));
     } else {
-      setDaysOfWeek([...daysOfWeek, day].sort());
+      setSelectedDays([...selectedDays, day].sort());
     }
-  };
-
-  const handleSelectWeekdaysOnly = () => {
-    setDaysOfWeek([1, 2, 3, 4, 5]);
-  };
-
-  const handleSelectAllDays = () => {
-    setDaysOfWeek([0, 1, 2, 3, 4, 5, 6]);
-  };
-
-  const handleSelectMondayOnly = () => {
-    setDaysOfWeek([1]);
   };
 
   const handleAddTime = () => {
@@ -79,210 +90,173 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   };
 
   const handleRemoveTime = (timeToRemove: string) => {
-    if (times.length > 1) {
-      setTimes(times.filter((t) => t !== timeToRemove));
-    }
+    if (times.length === 1) return; // Keep at least one
+    setTimes(times.filter((t) => t !== timeToRemove));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
 
-    const updatedTask: TaskItem = {
-      id: task?.id || `task-${Date.now()}`,
+    onSave({
+      id: task ? task.id : `task-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
       title: title.trim(),
       description: description.trim() || undefined,
       category: category.trim() || undefined,
       url: url.trim() || undefined,
-      linkTarget: url.trim() ? linkTarget : undefined,
-      daysOfWeek,
-      times: times.length > 0 ? times : ['09:00'],
+      linkTarget,
+      daysOfWeek: selectedDays,
+      times,
       soundAlert,
       persistentAlert,
-      enabled,
-      createdAt: task?.createdAt || new Date().toISOString(),
-    };
+      enabled: task ? task.enabled : true,
+      createdAt: task ? task.createdAt : new Date().toISOString(),
+    });
 
-    onSave(updatedTask);
     onClose();
   };
 
   return (
-    <div
-      id="task-modal-overlay"
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-sm overflow-y-auto animate-fade-in"
-    >
-      <div
-        id="task-modal-card"
-        className="w-full max-w-lg bg-neutral-900 rounded-2xl shadow-2xl border border-neutral-700/80 overflow-hidden my-6 text-neutral-100"
-      >
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
+      <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        
         {/* Modal Header */}
-        <div className="px-6 py-4 border-b border-neutral-800 flex items-center justify-between bg-neutral-950/60">
-          <div>
-            <h3 className="font-bold text-base text-neutral-100">
-              {isEditing ? 'Editar Rotina / Lembrete' : 'Cadastrar Nova Rotina no Taskito'}
+        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div
+              className="w-8 h-8 rounded-xl flex items-center justify-center"
+              style={{
+                backgroundColor: 'var(--app-primary-10, rgba(112, 20, 242, 0.1))',
+                color: 'var(--app-primary, #7014F2)',
+              }}
+            >
+              <Clock className="w-4 h-4" />
+            </div>
+            <h3 className="font-bold text-slate-900 dark:text-white text-base">
+              {isEditing ? 'Editar Atividade' : 'Nova Atividade'}
             </h3>
-            <p className="text-xs text-neutral-400">
-              Configure horários, dias de repetição, link de ação e alertas
-            </p>
           </div>
           <button
             onClick={onClose}
-            className="text-neutral-400 hover:text-neutral-200 p-1.5 rounded-lg hover:bg-neutral-800 transition-colors"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        {/* Modal Form */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1">
+          
           {/* Title */}
           <div className="space-y-1">
-            <label className="text-xs font-bold text-neutral-300">
-              Título da Tarefa *
-            </label>
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Título da Atividade *</label>
             <input
               type="text"
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Ex: Checar Banners do Portal, Disparar E-mails, Bater Ponto..."
-              className="w-full text-sm px-3.5 py-2 bg-neutral-950 border border-neutral-700 rounded-xl text-neutral-100 placeholder:text-neutral-600 focus:ring-2 focus:ring-amber-500 focus:border-transparent focus:outline-none"
+              placeholder="Ex: Pausa para alongamento, Enviar relatório..."
+              className="w-full text-sm px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-[var(--app-primary,#7014F2)] focus:border-transparent outline-none transition-all"
             />
           </div>
 
-          {/* Description */}
-          <div className="space-y-1">
-            <label className="text-xs font-bold text-neutral-300">
-              Instruções / Descrição (Opcional)
-            </label>
-            <textarea
-              rows={2}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Detalhes de como executar ou o que checar ao receber o lembrete..."
-              className="w-full text-xs px-3.5 py-2 bg-neutral-950 border border-neutral-700 rounded-xl text-neutral-100 placeholder:text-neutral-600 focus:ring-2 focus:ring-amber-500 focus:border-transparent focus:outline-none leading-relaxed"
-            />
-          </div>
-
-          {/* Category Tag & Link URL */}
+          {/* Category & URL */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="text-xs font-bold text-neutral-300">Categoria / Tag</label>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Categoria</label>
               <input
                 type="text"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                placeholder="Ex: Trabalho, Operações, Ponto..."
-                className="w-full text-xs px-3 py-2 bg-neutral-950 border border-neutral-700 rounded-xl text-neutral-100 placeholder:text-neutral-600 focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                placeholder="Ex: Trabalho, Pessoal, Saúde, Estudo"
+                className="w-full text-xs px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-[var(--app-primary,#7014F2)] outline-none"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-bold text-neutral-300 flex items-center gap-1">
-                <Link className="w-3 h-3 text-amber-400" />
-                <span>Link Direto (URL)</span>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                <Link className="w-3 h-3 text-[var(--app-primary,#7014F2)]" />
+                <span>Link Externo (Opcional)</span>
               </label>
               <input
                 type="url"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
-                placeholder="https://exemplo.com.br"
-                className="w-full text-xs px-3 py-2 bg-neutral-950 border border-neutral-700 rounded-xl text-neutral-100 placeholder:text-neutral-600 focus:ring-2 focus:ring-amber-500 focus:outline-none font-mono"
+                placeholder="https://exemplo.com"
+                className="w-full text-xs px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-[var(--app-primary,#7014F2)] outline-none font-mono"
               />
             </div>
           </div>
 
-          {/* Target Link Configuration: New Tab vs Modal */}
+          {/* Link Open Target */}
           {url.trim() && (
-            <div className="p-3.5 rounded-xl bg-neutral-950/70 border border-neutral-800 space-y-2">
-              <label className="text-xs font-bold text-neutral-300 flex items-center gap-1.5">
-                <Globe className="w-3.5 h-3.5 text-amber-400" />
-                <span>Comportamento ao Clicar no Link</span>
+            <div
+              className="p-3 rounded-xl border space-y-2"
+              style={{
+                backgroundColor: 'var(--app-primary-10, rgba(112, 20, 242, 0.05))',
+                borderColor: 'var(--app-primary-20, rgba(112, 20, 242, 0.2))',
+              }}
+            >
+              <label className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                <Globe className="w-3.5 h-3.5 text-[var(--app-primary,#7014F2)]" />
+                <span>Como abrir o link</span>
               </label>
-              <p className="text-[11px] text-neutral-400">
-                Escolha como deseja que o link seja aberto quando você clicar nele na rotina ou no alerta:
-              </p>
-
-              <div className="grid grid-cols-2 gap-2 pt-1">
+              <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={() => setLinkTarget('new_tab')}
-                  className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
+                  className={`p-2 rounded-lg border text-left transition-all ${
                     linkTarget === 'new_tab'
-                      ? 'bg-amber-500/10 border-amber-500 text-amber-300 ring-1 ring-amber-500'
-                      : 'bg-neutral-900 border-neutral-800 text-neutral-400 hover:border-neutral-700'
+                      ? 'bg-white dark:bg-slate-800 border-[var(--app-primary,#7014F2)] text-[var(--app-primary,#7014F2)] shadow-sm font-semibold'
+                      : 'bg-transparent border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'
                   }`}
                 >
-                  <span className="text-xs font-bold block">Abrir em Nova Aba</span>
-                  <span className="text-[10px] text-neutral-500 mt-1">
-                    Abre em uma nova aba do navegador (recomendado para sites externos)
-                  </span>
+                  <span className="text-xs block">Nova Aba</span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500">Recomendado</span>
                 </button>
-
                 <button
                   type="button"
                   onClick={() => setLinkTarget('modal')}
-                  className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
+                  className={`p-2 rounded-lg border text-left transition-all ${
                     linkTarget === 'modal'
-                      ? 'bg-amber-500/10 border-amber-500 text-amber-300 ring-1 ring-amber-500'
-                      : 'bg-neutral-900 border-neutral-800 text-neutral-400 hover:border-neutral-700'
+                      ? 'bg-white dark:bg-slate-800 border-[var(--app-primary,#7014F2)] text-[var(--app-primary,#7014F2)] shadow-sm font-semibold'
+                      : 'bg-transparent border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'
                   }`}
                 >
-                  <span className="text-xs font-bold block">Abrir em Janela Modal</span>
-                  <span className="text-[10px] text-neutral-500 mt-1">
-                    Abre direto dentro do Taskito sem precisar sair da página
-                  </span>
+                  <span className="text-xs block">Modal Interno</span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500">Dentro do app</span>
                 </button>
               </div>
             </div>
           )}
 
-          {/* Days of Week */}
-          <div className="space-y-2 pt-2 border-t border-neutral-800">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-neutral-300 flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-neutral-400" />
-                <span>Dias de Execução</span>
-              </label>
-              <div className="flex items-center gap-1.5 text-[11px]">
-                <button
-                  type="button"
-                  onClick={handleSelectWeekdaysOnly}
-                  className="px-2 py-0.5 rounded bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
-                >
-                  Seg-Sex
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSelectMondayOnly}
-                  className="px-2 py-0.5 rounded bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
-                >
-                  Só Seg
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSelectAllDays}
-                  className="px-2 py-0.5 rounded bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
-                >
-                  Todos
-                </button>
-              </div>
-            </div>
+          {/* Description */}
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Instruções / Anotações</label>
+            <textarea
+              rows={2}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Descreva detalhes, orientações ou passo-a-passo da atividade..."
+              className="w-full text-xs px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-[var(--app-primary,#7014F2)] outline-none"
+            />
+          </div>
 
-            <div className="flex items-center justify-between gap-1.5">
-              {daysList.map((d) => {
-                const isSelected = daysOfWeek.includes(d.value);
+          {/* Days of Week */}
+          <div className="space-y-2 pt-1">
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Dias da Semana</label>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {DAYS_OF_WEEK.map((d) => {
+                const isSelected = selectedDays.includes(d.value);
                 return (
                   <button
                     key={d.value}
                     type="button"
                     onClick={() => toggleDay(d.value)}
-                    title={d.name}
-                    className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${
+                    className={`w-9 h-9 rounded-xl text-xs font-semibold transition-all ${
                       isSelected
-                        ? 'bg-amber-500 text-neutral-950 shadow-xs'
-                        : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200'
+                        ? 'btn-app-primary text-white shadow-sm'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
                     }`}
                   >
                     {d.label}
@@ -292,103 +266,78 @@ export const TaskModal: React.FC<TaskModalProps> = ({
             </div>
           </div>
 
-          {/* Time Slots */}
-          <div className="space-y-2 pt-2 border-t border-neutral-800">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-neutral-300 flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-neutral-400" />
-                <span>Horários dos Lembretes ({times.length})</span>
-              </label>
-              <span className="text-[11px] text-neutral-500">
-                Você pode cadastrar múltiplos horários (ex: bater ponto 4x)
-              </span>
-            </div>
-
-            {/* Existing Time Badges */}
+          {/* Times */}
+          <div className="space-y-2 pt-1">
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
+              <span>Horários Agendados</span>
+            </label>
             <div className="flex flex-wrap items-center gap-2">
               {times.map((t) => (
                 <span
                   key={t}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 bg-neutral-950 border border-neutral-700 rounded-xl text-xs font-mono font-bold text-amber-300"
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border"
+                  style={{
+                    backgroundColor: 'var(--app-primary-10, rgba(112, 20, 242, 0.1))',
+                    color: 'var(--app-primary, #7014F2)',
+                    borderColor: 'var(--app-primary-20, rgba(112, 20, 242, 0.2))',
+                  }}
                 >
                   <span>{t}</span>
                   {times.length > 1 && (
                     <button
                       type="button"
                       onClick={() => handleRemoveTime(t)}
-                      className="text-neutral-500 hover:text-red-400"
+                      className="hover:text-red-500 transition-colors"
                     >
                       <X className="w-3 h-3" />
                     </button>
                   )}
                 </span>
               ))}
-            </div>
 
-            {/* Add another time slot */}
-            <div className="flex items-center gap-2 pt-1">
-              <input
-                type="time"
-                value={newTimeInput}
-                onChange={(e) => setNewTimeInput(e.target.value)}
-                className="text-xs px-3 py-1.5 bg-neutral-950 border border-neutral-700 rounded-xl font-mono text-neutral-200 focus:outline-none focus:ring-1 focus:ring-amber-500"
-              />
-              <button
-                type="button"
-                onClick={handleAddTime}
-                className="flex items-center gap-1 px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 rounded-xl text-xs font-semibold transition-colors"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Adicionar Horário</span>
-              </button>
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="time"
+                  value={newTimeInput}
+                  onChange={(e) => setNewTimeInput(e.target.value)}
+                  className="text-xs px-2.5 py-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-200"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddTime}
+                  className="p-1 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-[var(--app-primary,#7014F2)] hover:text-white transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Alert Options */}
-          <div className="pt-2 border-t border-neutral-800 space-y-2.5">
-            <label className="flex items-center gap-2.5 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={persistentAlert}
-                onChange={(e) => setPersistentAlert(e.target.checked)}
-                className="w-4 h-4 rounded text-amber-500 bg-neutral-950 border-neutral-700 focus:ring-amber-500"
-              />
-              <div className="text-xs">
-                <span className="font-semibold text-neutral-200">Alerta Persistente</span>
-                <p className="text-neutral-400 text-[11px]">
-                  Mantém aviso e som repetitivo na tela até que você confirme ou adie
-                </p>
-              </div>
-            </label>
-
-            <label className="flex items-center gap-2.5 cursor-pointer">
+          {/* Persistent Alert & Sound */}
+          <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
+            <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
                 checked={soundAlert}
                 onChange={(e) => setSoundAlert(e.target.checked)}
-                className="w-4 h-4 rounded text-amber-500 bg-neutral-950 border-neutral-700 focus:ring-amber-500"
+                className="w-4 h-4 rounded"
+                style={{ accentColor: 'var(--app-primary, #7014F2)' }}
               />
-              <div className="text-xs">
-                <span className="font-semibold text-neutral-200">Sinal Sonoro Harmonioso</span>
-                <p className="text-neutral-400 text-[11px]">
-                  Toca aviso de áudio (chime) no horário programado
-                </p>
-              </div>
+              <span>Alarme sonoro ao chegar a hora</span>
             </label>
           </div>
 
-          {/* Action buttons */}
-          <div className="pt-4 border-t border-neutral-800 flex items-center justify-between">
-            {task && onDelete ? (
+          {/* Modal Actions */}
+          <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3">
+            {isEditing && onDelete ? (
               <button
                 type="button"
                 onClick={() => {
-                  if (confirm(`Deseja remover a rotina "${task.title}"?`)) {
-                    onDelete(task.id);
-                    onClose();
-                  }
+                  onDelete(task!.id);
+                  onClose();
                 }}
-                className="flex items-center gap-1 px-3 py-2 text-xs font-semibold text-red-400 hover:bg-red-950/50 rounded-xl transition-colors border border-transparent hover:border-red-900"
+                className="text-xs text-red-500 hover:text-red-700 font-semibold flex items-center gap-1"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 <span>Excluir</span>
@@ -399,19 +348,21 @@ export const TaskModal: React.FC<TaskModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-xs font-semibold text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800 rounded-xl transition-colors"
+                className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
-                className="px-5 py-2 text-xs font-bold bg-amber-500 text-neutral-950 rounded-xl hover:bg-amber-400 active:scale-95 transition-all shadow-md"
+                className="px-5 py-2 text-xs font-semibold btn-app-primary rounded-full transition-all"
               >
-                {isEditing ? 'Salvar Alterações' : 'Cadastrar Rotina'}
+                {isEditing ? 'Salvar Alterações' : 'Criar Atividade'}
               </button>
             </div>
           </div>
+
         </form>
+
       </div>
     </div>
   );

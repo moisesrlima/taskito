@@ -41,9 +41,30 @@ export interface ActiveAlert {
   timestamp: number;
 }
 
+export interface TaskitoColorTheme {
+  id: string;
+  name: string;
+  level: number;
+  xpRequired: number;
+  primaryColor: string;
+  primaryHover: string;
+  gradientFrom: string;
+  gradientTo: string;
+  glowColor: string;
+  badgeText: string;
+  description: string;
+}
+
+export type MascotMood = 'happy' | 'focused' | 'sleepy' | 'excited' | 'loving';
+
 export interface AppSettings {
   soundEnabled: boolean;
   notificationsEnabled: boolean;
   snoozeMinutes: number;
   autoPlayChime: boolean;
+  userName?: string;
+  theme?: 'light' | 'dark';
+  xp?: number;
+  selectedColorThemeId?: string;
+  mascotMood?: MascotMood;
 }

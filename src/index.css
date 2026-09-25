@@ -1,5 +1,41 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --app-primary: #7014F2;
+  --app-primary-hover: #600ed4;
+  --app-primary-10: rgba(112, 20, 242, 0.1);
+  --app-primary-20: rgba(112, 20, 242, 0.2);
+  --mascot-from: #7A1BF2;
+  --mascot-to: #6312D6;
+  --mascot-glow: rgba(122, 27, 242, 0.35);
+}
+
+.bg-theme-primary {
+  background-color: var(--app-primary, #7014F2);
+}
+.bg-theme-primary:hover {
+  background-color: var(--app-primary-hover, #600ed4);
+}
+.text-theme-primary {
+  color: var(--app-primary, #7014F2);
+}
+.border-theme-primary {
+  border-color: var(--app-primary, #7014F2);
+}
+
+.btn-app-primary {
+  background-color: var(--app-primary, #7014F2) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px var(--mascot-glow, rgba(112, 20, 242, 0.35)) !important;
+  transition: all 0.2s ease-out;
+}
+.btn-app-primary:hover {
+  background-color: var(--app-primary-hover, #600ed4) !important;
+  filter: brightness(1.05);
+}
+
 @keyframes fadeIn {
   from { opacity: 0; transform: scale(0.96); }
   to { opacity: 1; transform: scale(1); }
@@ -7,4 +43,122 @@
 
 .animate-fade-in {
   animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes mascotIdle {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-3px); }
+}
+
+@keyframes eyeBlink {
+  0%, 45%, 48%, 95%, 98%, 100% { transform: scaleY(1); }
+  46%, 47%, 96%, 97% { transform: scaleY(0.1); }
+}
+
+.animate-mascot-idle {
+  animation: mascotIdle 4s ease-in-out infinite;
+}
+
+.animate-eye-blink {
+  animation: eyeBlink 5s infinite;
+  transform-origin: center;
+}
+
+@keyframes mascotHop {
+  0% { transform: translateY(0) scale(1, 1); }
+  25% { transform: translateY(-16px) scale(0.96, 1.08); }
+  50% { transform: translateY(-6px) scale(1.04, 0.98); }
+  75% { transform: translateY(-2px) scale(0.99, 1.01); }
+  100% { transform: translateY(0) scale(1, 1); }
+}
+
+.animate-mascot-hop {
+  animation: mascotHop 0.55s ease-out forwards;
+}
+
+@keyframes steamHeart {
+  0% {
+    opacity: 0;
+    transform: translateY(4px) scale(0.5) rotate(-6deg);
+  }
+  25% {
+    opacity: 0.9;
+    transform: translateY(-14px) scale(0.9) rotate(4deg);
+  }
+  60% {
+    opacity: 0.85;
+    transform: translateY(-32px) scale(1.15) rotate(-4deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-52px) scale(1.4) rotate(8deg);
+  }
+}
+
+.animate-steam-heart {
+  animation: steamHeart 1.8s ease-out forwards;
+}
+
+@keyframes heartFloatUp {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.4) rotate(0deg);
+  }
+  20% {
+    opacity: 1;
+    transform: translateY(-12px) scale(1) rotate(-8deg);
+  }
+  80% {
+    opacity: 0.9;
+    transform: translateY(-38px) scale(1.1) rotate(10deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-56px) scale(1.2) rotate(16deg);
+  }
+}
+
+.animate-heart-float {
+  animation: heartFloatUp 1.4s ease-out forwards;
+}
+
+@keyframes noteFloat {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.7) rotate(0deg);
+  }
+  30% {
+    opacity: 0.95;
+    transform: translateY(-14px) scale(1) rotate(-10deg);
+  }
+  75% {
+    opacity: 0.8;
+    transform: translateY(-34px) scale(1.08) rotate(12deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-48px) scale(0.9) rotate(20deg);
+  }
+}
+
+.animate-note-float {
+  animation: noteFloat 2s ease-in-out infinite;
+}
+
+@keyframes soundWaveBar {
+  0%, 100% { height: 4px; }
+  50% { height: 14px; }
+}
+
+.animate-soundwave-1 {
+  animation: soundWaveBar 0.9s ease-in-out infinite;
+}
+.animate-soundwave-2 {
+  animation: soundWaveBar 0.7s ease-in-out infinite 0.15s;
+}
+.animate-soundwave-3 {
+  animation: soundWaveBar 1.1s ease-in-out infinite 0.3s;
+}
+.animate-soundwave-4 {
+  animation: soundWaveBar 0.8s ease-in-out infinite 0.1s;
 }
